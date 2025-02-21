@@ -1,0 +1,2 @@
+,max_depth,n_estimators,min_samples_split,min_samples_leaf,Accuracy,Train Score,Test Score,Difference
+0,13,100,2,1,0.9862142857142857,0.9953035714285714,0.9862142857142857,0.009089285714285689
