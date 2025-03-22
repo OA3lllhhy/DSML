@@ -52,60 +52,56 @@ optimizer = torch.optim.SGD(params = model.parameters(),
 5. Define trainning loop function
 
 ```python
-def train_epoch():
-    tot_loss = 0
-    valid_loss = 0
-    for X_train, y_train in dloader_train:
-        y_pred = model(X_train)
-        optimizer.zero_grad()
-        loss = loss_fcn(y_pred, y_train.reshape(-1,1))
-        tot_loss += loss.detach()
-        loss.backward()
-        optimizer.step()
-    
-    for X_valid, y_valid in dloader_validate:
-        y_pred_v = model(X_valid)
-        vloss = loss_fcn(y_pred_v, y_valid.reshape(-1,1))
-        valid_loss += vloss.detach()
-    
-    return tot_loss/len(dataset_train), valid_loss/len(dataset_validate)
-```
+def train_epoch(model, 
+                optimizer, 
+                dloader_train, 
+                dloader_val, 
+                epochs):
 
-```python
-def train_epoch(model, optimizer, dloader_train, dloader_validate, epochs):
-    tot_loss_list = []
-    valid_loss_list = []
-    
-    for epoch in range(epochs):
-        tot_loss = 0
+    tot_losses = []
+    val_losses = []
+
+    for epoch in range(epochs)
+        train_loss = 0
         valid_loss = 0
+
+        model.train()
         for X_train, y_train in dloader_train:
             X_train = X_train.view(X_train.shape[0], -1)
+            # X_train = torch.from_numpy(scaler.fit_transform(X_train)).to(torch.float)
+            # Which line of code is used is depend on the dataset, 
+            # Use .scaler.fit_transform(X) for datasets where features 
+            # have different numerical scales (e.g., California Housing).
+            # Use .view(batch_size, -1) when you only need to reshape 
+            # the data (e.g., make_moons).
             y_pred = model(X_train)
             optimizer.zero_grad()
-            loss = loss_fcn(y_pred, y_train)
-            tot_loss += loss.item()
+            loss = loss_fcn(y_pred, y_train.reshape(-1,1))
+            train_loss += loss.item()
             loss.backward()
             optimizer.step()
 
-        tot_loss = tot_loss/dloader_train.__len__()
-        tot_loss_list.append(tot_loss)
+        training_loss = train_loss / dloader_train.__len__()
+        tot_losses.append(training_loss)
         
+        model.eval()
         for X_valid, y_valid in dloader_validate:
             X_valid = X_valid.view(X_valid.shape[0], -1)
+            # X_valid = torch.from_numpy(scaler.fit_transform(X_valid)).to(torch.float)
             y_pred_v = model(X_valid)
-            vloss = loss_fcn(y_pred_v, y_valid)
+            vloss = loss_fcn(y_pred_v, y_valid.reshape(-1,1))
             valid_loss += vloss.item()
 
-        valid_loss = valid_loss/dloader_validate.__len__()
-        valid_loss_list.append(valid_loss)
+        validation_loss = valid_loss / dloader_val.__len__()
+        val_losses.append(validation_loss)
 
         if (epoch + 1) % 5 == 0:
             print(f'Epoch {epoch+1}/{epochs}, Train Loss: {tot_loss:.4f}, Val Loss: {valid_loss:.4f}')
-            
-    return tot_loss_list, valid_loss_list
-
+    
+    return tot_losses, val_losses
 ```
+
+
 
 6. Plot data and decision boundary (Optional)
 
@@ -163,6 +159,14 @@ ax.yaxis.set_minor_locator(MultipleLocator(4))
 ax.grid(color='xkcd:dark blue',alpha = 0.2)
 ax.legend(loc='upper right',fontsize = 12)
 ```
+
+How to interpretate the loss curve?
+| **Pattern**       | **Training Loss** | **Validation Loss** | **Problem**         | **Solution** |
+|-------------------|----------------|----------------|----------------|------------|
+| **Good Fit** (No big gap)      | Decreases steadily | Decreases steadily | ✅ No problem | No change needed |
+| **Overfitting** High Acc, poor validation   | Decreases to very low values | Stops decreasing, may increase | ❌ Model memorizes training data | Regularization, dropout, early stopping, data augmentation |
+| **Underfitting** Both acc validation high | High and slow decrease | High and slow decrease | ❌ Model too simple | Increase model size, train longer, lower regularization |
+
 9. Calculate accuracy
 ```python
 # Need to decide what class to predict, and make sure the prediction tensor is in the right shape
